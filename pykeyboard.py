@@ -485,7 +485,8 @@ class Quizz(Application):
         super().__init__(keyboard)
         self.dst = (ip,port)
         self.sock = socket.socket(socket.AF_INET,socket.SOCK_DGRAM)
-        self.keys = {(0,0):b"1",(0,1):b"2",(0,2):b"3",(1,0):b"4",(1,1):b"5",(1,2):b"6",(2,0):b"7",(2,1):b"8",(2,2):b"9",(3,0):b"0"}
+        base = 4
+        self.keys = {(base+0,0):b"1",(base+0,1):b"2",(base+0,2):b"3",(base+1,0):b"4",(base+1,1):b"5",(base+1,2):b"6",(base+2,0):b"7",(base+2,1):b"8",(base+2,2):b"9",(base+3,0):b"0"}
 
     def init(self):
         super().init()

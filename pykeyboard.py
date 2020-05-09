@@ -187,20 +187,28 @@ class Application(object):
         return self.terminated
 
 
-class MainApplication(Application):
-    """ Main application, launch new applications """
+class CmdApplication(Application):
+    """ Application excuting command on push button """
     def __init__(self,keyboard,conf):
         super().__init__(keyboard)
         self.current_app = None
         self.conf = self.load_configuration(conf)
 
-    def init(self):
-        super().init()
-        self.current_app = None
-
     def load_configuration(self,path):
         with open(path,"rb") as f:
             return json.load(f)
+
+    def init(self):
+        super().init()
+        self.current_app = None
+        for button,conf in self.conf.items():
+            if "color" in conf:
+                x,y = self.keyboard.to_coord(int(button))
+                self.on(x,y,conf["color"])
+
+    def terminate(self):
+        super().terminate()
+        self.clear(everything=True)
 
     def launch_appli(self,cmd):
         parenthesis = cmd.find('(')
@@ -209,6 +217,10 @@ class MainApplication(Application):
         cmd = cmd[:parenthesis+1] + "self.keyboard," + cmd[parenthesis+1:]
         return eval(cmd)
 
+    def execute(self,cmd):
+        """ Execute shell command """
+        subprocess.check_output(cmd,stderr=subprocess.STDOUT,shell=True)
+
     def event_button(self,button,pushed):
         # Proxy mode
         if self.current_app:
@@ -216,39 +228,17 @@ class MainApplication(Application):
             if self.current_app.is_terminated():
                 self.current_app = None
                 self.init()
-        else:
+        elif pushed:
             button = str(button)
-            if pushed and button == "63":
-                self.clear(everything=True)
-            elif not pushed and button in self.conf:
-                self.current_app = self.launch_appli(self.conf[button])
-                if self.current_app:
-                    self.current_app.init()
-
-
-class CmdApplication(Application):
-    """ Application excuting command on push button """
-    def __init__(self,keyboard,conf):
-        super().__init__(keyboard)
-        self.conf = self.load_configuration(conf)
-
-    def load_configuration(self,path):
-        with open(path,"rb") as f:
-            return json.load(f)
-
-    def init(self):
-        super().init()
-        for button,conf in self.conf.items():
-            if "color" in conf:
-                x,y = self.keyboard.to_coord(int(button))
-                self.on(x,y,conf["color"])
-
-    def event_push_xy(self,x,y):
-        button = str(self.keyboard.from_coord(x,y))
-        if button in self.conf and "cmd" in self.conf[button]:
-            subprocess.check_output(self.conf[button]["cmd"],stderr=subprocess.STDOUT,shell=True)
-        elif (x,y) == (7,7):
-            self.terminate()
+            if button == "63":
+                self.terminate()
+            elif button in self.conf:
+                if "appli" in self.conf[button]:
+                    self.current_app = self.launch_appli(self.conf[button]["appli"])
+                    if self.current_app:
+                        self.current_app.init()
+                if "cmd" in self.conf[button]:
+                    self.execute(self.conf[button]["cmd"])
 
 
 class Basic(Application):
@@ -544,7 +534,7 @@ class SecretKey(Application):
 
 
 class UDPKeyboard(Keyboard):
-    def __init__(self,port=64241,*args,**kargs):
+    def __init__(self,port=64240,*args,**kargs):
         super().__init__(*args,**kargs)
         self.port = port
         self.sock = socket.socket(socket.AF_INET,socket.SOCK_DGRAM)
@@ -564,6 +554,6 @@ class UDPKeyboard(Keyboard):
 
 if __name__ == "__main__":
     keyboard = UDPKeyboard()
-    app = MainApplication(keyboard,conf=sys.argv[1])
+    app = CmdApplication(keyboard,conf=sys.argv[1])
     keyboard.set_application(app)
     keyboard.run()

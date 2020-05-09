@@ -7,6 +7,8 @@ import json
 import random
 import subprocess
 import time
+import shlex
+from threading import Thread
 
 
 class Protocol(object):
@@ -189,9 +191,24 @@ class Application(object):
 
 class CmdApplication(Application):
     """ Application excuting command on push button """
+    class Command(Thread):
+        def __init__(self,cmd):
+            super().__init__()
+            self.cmd = shlex.split(cmd)
+            self.proc = None
+
+        def run(self):
+            self.proc = subprocess.Popen(self.cmd,stderr=subprocess.DEVNULL,stdout=subprocess.DEVNULL)
+            self.proc.communicate()
+
+        def kill(self,sig=2):
+            if self.proc:
+                self.proc.send_signal(sig)
+
     def __init__(self,keyboard,conf):
         super().__init__(keyboard)
         self.current_app = None
+        self.cmd = None
         self.conf = self.load_configuration(conf)
 
     def load_configuration(self,path):
@@ -208,6 +225,7 @@ class CmdApplication(Application):
 
     def terminate(self):
         super().terminate()
+        self.stop_cmd()
         self.clear(everything=True)
 
     def launch_appli(self,cmd):
@@ -219,7 +237,14 @@ class CmdApplication(Application):
 
     def execute(self,cmd):
         """ Execute shell command """
-        subprocess.check_output(cmd,stderr=subprocess.STDOUT,shell=True)
+        self.cmd = CmdApplication.Command(cmd)
+        self.cmd.start()
+
+    def stop_cmd(self):
+        if self.cmd:
+            self.cmd.kill()
+            self.cmd.join()
+            self.cmd = None
 
     def event_button(self,button,pushed):
         # Proxy mode
@@ -227,6 +252,7 @@ class CmdApplication(Application):
             self.current_app.event_button(button,pushed)
             if self.current_app.is_terminated():
                 self.current_app = None
+                self.stop_cmd()
                 self.init()
         elif pushed:
             button = str(button)

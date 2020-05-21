@@ -296,7 +296,7 @@ class BrightnessApplication(Application):
         self.on(0,0,0xFF00)
         self.on(0,7,0xFF00000)
 
-    def event_pull_xy(self,x,y):
+    def event_push_xy(self,x,y):
         if (x,y) == (0,0):
             self.decrease_brightness()
         elif (x,y) == (0,7):
@@ -405,7 +405,7 @@ class Sudoku(Application):
 
         return True
 
-    def event_pull_xy(self,x,y):
+    def event_push_xy(self,x,y):
         if self.is_fixed_button(x,y):
             return
 
@@ -421,7 +421,7 @@ class Sudoku(Application):
 
 class PhiloGame(Application):
     """ Useless game, does not really work """
-    def event_pull_xy(self,x,y):
+    def event_push_xy(self,x,y):
         if self.is_on(x,y):
             return 
         else:
@@ -476,7 +476,7 @@ class Power4(Application):
                     break
         return False
 
-    def event_pull_xy(self,x,y):
+    def event_push_xy(self,x,y):
         color = 0xFF if self.user1 else 0xFF0000
 
         for j in range(7,-1,-1):
@@ -526,7 +526,7 @@ class SecretKey(Application):
         self.randomx = random.randint(0,7)
         self.randomy = random.randint(0,7)
 
-    def event_pull_xy(self,x,y):
+    def event_push_xy(self,x,y):
         for i,j in ((0,0),(0,7),(0,3),(3,0),(3,7),(7,0),(7,3),(7,7)):
             self.off(i,j)
         self.commit()

@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import sys
+import argparse
 import socket
 import struct
 import json
@@ -578,8 +579,17 @@ class UDPKeyboard(Keyboard):
             self.sock.sendto(data[i:i+1400],self.addr_keyboard)
 
 
+def parse_args():
+    parser = argparse.ArgumentParser(description="Server for arduino keyboard")
+    parser.add_argument("--conf","-c",metavar="PATH",required=True,help="Configuration file")
+    parser.add_argument("--port","-p",metavar="PORT",default=64240,type=int,help="UDP port to listen to")
+    return parser.parse_args()
+
+
 if __name__ == "__main__":
-    keyboard = UDPKeyboard()
-    app = CmdApplication(keyboard,conf=sys.argv[1])
+    args = parse_args()
+
+    keyboard = UDPKeyboard(port=args.port)
+    app = CmdApplication(keyboard,conf=args.conf)
     keyboard.set_application(app)
     keyboard.run()

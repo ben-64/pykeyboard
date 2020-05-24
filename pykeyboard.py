@@ -501,11 +501,19 @@ class Power4(Application):
         self.user1 = not self.user1
 
 
-class Quizz(Application):
+class NetworkApplication(Application):
     def __init__(self,keyboard,ip="127.0.0.1",port=64243):
         super().__init__(keyboard)
         self.dst = (ip,port)
         self.sock = socket.socket(socket.AF_INET,socket.SOCK_DGRAM)
+
+    def send(self,data):
+        return self.sock.sendto(data,self.dst)
+
+
+class Quizz(NetworkApplication):
+    def __init__(self,*args,**kargs):
+        super().__init__(*args,**kargs)
         base = 4
         self.keys = {(base+0,0):b"1",(base+0,1):b"2",(base+0,2):b"3",(base+1,0):b"4",(base+1,1):b"5",(base+1,2):b"6",(base+2,0):b"7",(base+2,1):b"8",(base+2,2):b"9",(base+3,0):b"0"}
 
@@ -518,9 +526,70 @@ class Quizz(Application):
         if (x,y) == (7,7):
             self.terminate()
         elif (x,y) in self.keys:
-            self.sock.sendto(self.keys[(x,y)],self.dst)
+            self.send(self.keys[(x,y)])
 
 
+class ColorChooser(NetworkApplication):
+    def __init__(self,*args,**kargs):
+        super().__init__(*args,**kargs)
+        self.color = 0x00FF00
+        self.functions = {
+                (0,0):lambda v,s: ColorChooser.change_value(v,s,0,0),
+                (1,0):lambda v,s: ColorChooser.change_value(v,-s,0,0),
+                (2,0):lambda v,s: ColorChooser.change_value(v,255,0,0),
+                (3,0):lambda v,s: ColorChooser.change_value(v,-255,0,0),
+                (0,1):lambda v,s: ColorChooser.change_value(v,0,s,0),
+                (1,1):lambda v,s: ColorChooser.change_value(v,0,-s,0),
+                (2,1):lambda v,s: ColorChooser.change_value(v,0,255,0),
+                (3,1):lambda v,s: ColorChooser.change_value(v,0,-255,0),
+                (0,2):lambda v,s: ColorChooser.change_value(v,0,0,s),
+                (1,2):lambda v,s: ColorChooser.change_value(v,0,0,-s),
+                (2,2):lambda v,s: ColorChooser.change_value(v,0,0,255),
+                (3,2):lambda v,s: ColorChooser.change_value(v,0,0,-255)
+                }
+ 
+    def init(self):
+        super().init()
+        self.keyboard.brightness = 0.5
+
+        # Red
+        self.on(0,0,0xFF0000)
+        self.on(1,0,0x110000)
+        self.on(2,0,0xFFFFFF)
+        self.on(3,0,0x111111)
+
+        # Green
+        self.on(0,1,0x00FF00)
+        self.on(1,1,0x001100)
+        self.on(2,1,0xFFFFFF)
+        self.on(3,1,0x111111)
+
+        # Blue
+        self.on(0,2,0x0000FF)
+        self.on(1,2,0x000011)
+        self.on(2,2,0xFFFFFF)
+        self.on(3,2,0x111111)
+
+        self.on(7,7,0xFFFFFF)
+
+    def change_value(color,r,g,b):
+        cr,cg,cb = color>>16,((color>>8)&0xFF),(color&0xFF)
+        nr = min(max(0,cr+r),255)
+        ng = min(max(0,cg+g),255)
+        nb = min(max(0,cb+b),255)
+        return nr<<16 | ng<<8 | nb
+
+    def send_color(self):
+        self.send(struct.pack("<I",self.color))
+
+    def event_push_xy(self,x,y):
+        if (x,y) == (7,7):
+            self.terminate()
+        elif (x,y) in self.functions:
+            self.color = self.functions[(x,y)](self.color,4)
+            self.send_color()
+
+    
 class SecretKey(Application):
     def __init__(self,keyboard,level=1):
         super().__init__(keyboard)

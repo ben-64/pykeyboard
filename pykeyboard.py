@@ -550,6 +550,7 @@ class ColorChooser(NetworkApplication):
  
     def init(self):
         super().init()
+        self.backup_brightness = self.keyboard.brightness
         self.keyboard.brightness = 0.5
 
         # Red
@@ -588,6 +589,10 @@ class ColorChooser(NetworkApplication):
         elif (x,y) in self.functions:
             self.color = self.functions[(x,y)](self.color,4)
             self.send_color()
+
+    def terminate(self):
+        self.keyboard.brightness = self.backup_brightness
+        super().terminate()
 
     
 class SecretKey(Application):

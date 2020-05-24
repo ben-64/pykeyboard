@@ -222,7 +222,8 @@ class CmdApplication(Application):
         for button,conf in self.conf.items():
             if "color" in conf:
                 x,y = self.keyboard.to_coord(int(button))
-                self.on(x,y,conf["color"])
+                color = conf["color"] if type(conf["color"]) is int else int(conf["color"],0)
+                self.on(x,y,color)
 
     def terminate(self):
         super().terminate()

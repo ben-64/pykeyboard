@@ -52,6 +52,9 @@ class Keyboard(object):
         self.reset()
         self.brightness = 0.1
 
+    def init(self):
+        pass
+
     def set_application(self,app):
         self.application = app
         self.application.init()
